@@ -89,6 +89,15 @@ This tool is designed around [Wikipedia:LLM-assisted translation](https://en.wik
 4. Attribution is generated in the format required by CC BY-SA 4.0 (edit summary + `{{Translated page}}` on talk).
 5. The CLI has **no** `--publish` flag and does not call the Wikipedia edit API.
 
+## Examples
+
+See [`examples/brett-whiteley-en-to-zh/`](examples/brett-whiteley-en-to-zh/) for
+actual end-to-end output: the translated wikitext, the CC BY-SA attribution
+files, and the `review-notes.md` that a human reviewer must walk through.
+A `reproduce.py` script in that directory drives the pipeline against a
+synthetic fixture so you can re-run it without needing network access to
+Wikipedia.
+
 ## Project Status
 
 Early. See plan and [CONTRIBUTING.md](CONTRIBUTING.md).

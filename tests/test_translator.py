@@ -37,7 +37,11 @@ def test_article_to_section_units():
     assert units[0].heading == ""
     assert "Australian painter" in units[0].source_text
     assert units[1].heading == "== Early life =="
+    # The heading is also embedded in source_text so the LLM translates it.
+    assert units[1].source_text.startswith("== Early life ==")
+    assert "He was born in 1939." in units[1].source_text
     assert units[2].heading == "== Career =="
+    assert units[2].source_text.startswith("== Career ==")
     assert all(u.section_id for u in units)
 
 

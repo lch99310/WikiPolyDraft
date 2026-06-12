@@ -79,7 +79,11 @@ def article_to_section_units(article: Article) -> list[SectionUnit]:
         if not body.strip():
             continue
         section_id = _slugify(heading or "lead", i)
-        units.append(SectionUnit(section_id=section_id, heading=heading, source_text=body))
+        # Include heading in source_text so the LLM also translates it.
+        # The formatter relies on the translated heading being part of the
+        # returned text and does not prepend the original heading.
+        source_text = f"{heading}\n\n{body}" if heading else body
+        units.append(SectionUnit(section_id=section_id, heading=heading, source_text=source_text))
     return units
 
 

@@ -42,9 +42,10 @@ def assemble_wikitext(
 ) -> str:
     """Build the final wikitext draft for the translated article."""
     pieces: list[str] = [DRAFT_BANNER, _llm_assisted_template(job), ""]
-    for unit, result in translations:
-        if unit.heading:
-            pieces.append(unit.heading)
+    for _unit, result in translations:
+        # The translated section already includes its own heading (the LLM was
+        # given the heading as part of source_text and was instructed to
+        # translate the heading text while preserving the `==` markers).
         pieces.append(result.translated_text.rstrip())
         pieces.append("")
     return "\n".join(pieces).rstrip() + "\n"

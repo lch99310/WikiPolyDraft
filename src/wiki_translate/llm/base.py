@@ -62,11 +62,14 @@ CRITICAL RULES:
    to the {src} Wikipedia). The reviewing editor will resolve the link to the
    {tgt} equivalent if one exists.
 4. Preserve all <ref>...</ref> citations unchanged.
-5. If you encounter a term whose translation is uncertain (proper nouns, technical
+5. If the source begins with a section heading written as `== Heading ==` (or
+   `=== Subheading ===` etc.), translate the heading TEXT into {tgt} but keep
+   the surrounding `==` markers exactly as they appear.
+6. If you encounter a term whose translation is uncertain (proper nouns, technical
    terms, ambiguous phrasing), keep the source term in parentheses after the
    translation, e.g. "巴雷特·惠特利 (Brett Whiteley)".
-6. Do NOT add information that is not in the source. Do NOT remove information.
-7. Do NOT add your own commentary, opinions, or explanations to the article body.
+7. Do NOT add information that is not in the source. Do NOT remove information.
+8. Do NOT add your own commentary, opinions, or explanations to the article body.
 
 OUTPUT FORMAT:
 Return ONLY the translated section body (no preamble, no closing remarks).

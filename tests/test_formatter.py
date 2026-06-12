@@ -35,7 +35,9 @@ def test_assemble_wikitext_contains_safeguards():
     job = _make_job()
     translations = [
         (job.sections[0], TranslationResult("前言文字。")),
-        (job.sections[1], TranslationResult("生於1939年。<ref>Source A</ref>")),
+        # The LLM is responsible for translating the heading too; the
+        # formatter no longer prepends the original English heading.
+        (job.sections[1], TranslationResult("== 早年生涯 ==\n生於1939年。<ref>Source A</ref>")),
     ]
     wt = assemble_wikitext(job, translations)
     assert DRAFT_BANNER in wt
@@ -43,7 +45,8 @@ def test_assemble_wikitext_contains_safeguards():
     assert "|reviewed=no" in wt
     assert "|from=en" in wt
     assert "|oldid=123456789" in wt
-    assert "== Early life ==" in wt
+    assert "== 早年生涯 ==" in wt
+    assert "== Early life ==" not in wt
     assert "前言文字。" in wt
     assert "<ref>Source A</ref>" in wt
 
