@@ -68,16 +68,16 @@ def test_talk_template_format():
     assert "|oldid=123456789" in template
 
 
-def test_review_notes_flag_citation_count_mismatch():
+def test_review_notes_flag_missing_citation():
     job = _make_job()
     translations = [
         (job.sections[0], TranslationResult("前言文字。")),
-        # Translation dropped the citation
-        (job.sections[1], TranslationResult("生於1939年。")),
+        # Translation dropped the heading and the citation; factcheck reports it
+        (job.sections[1], TranslationResult("== 早年生涯 ==\n生於1939年。")),
     ]
     md, items = build_review_notes(job, translations)
-    assert any("Citation count mismatch" in i.note for i in items)
-    assert "Citation count mismatch" in md
+    assert any("[missing]" in i.note for i in items)
+    assert "Source A" in md
 
 
 def test_review_notes_flag_llm_meta_text():

@@ -91,12 +91,20 @@ This tool is designed around [Wikipedia:LLM-assisted translation](https://en.wik
 
 ## Examples
 
-See [`examples/brett-whiteley-en-to-zh/`](examples/brett-whiteley-en-to-zh/) for
-actual end-to-end output: the translated wikitext, the CC BY-SA attribution
-files, and the `review-notes.md` that a human reviewer must walk through.
-A `reproduce.py` script in that directory drives the pipeline against a
-synthetic fixture so you can re-run it without needing network access to
-Wikipedia.
+Two end-to-end examples are checked in, each with its own `reproduce.py`
+that drives the pipeline against a synthetic fixture (so they run offline):
+
+- [`examples/brett-whiteley-en-to-zh/`](examples/brett-whiteley-en-to-zh/) —
+  English to Chinese translation of an Australian-painter article.
+- [`examples/nine-sons-zh-to-en/`](examples/nine-sons-zh-to-en/) —
+  Chinese to English translation of 九子奪嫡 (a Qing-dynasty succession
+  struggle), the exact kind of asymmetry — rich coverage on one wiki,
+  no article on the other — that motivated this tool.
+
+If the source article has a langlink to an existing target-language article,
+`wiki-translate prepare` additionally produces a `coverage-report.md` listing
+both wikis' sections side-by-side with integration guidance (do NOT
+overwrite the existing article).
 
 ## Project Status
 

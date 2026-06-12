@@ -1,0 +1,43 @@
+<!--
+==============================================================================
+DRAFT - DO NOT PUBLISH WITHOUT HUMAN REVIEW
+==============================================================================
+This article was prepared by an AI-assisted translation tool (wiki-translate).
+Per Wikipedia:LLM-assisted_translation, the editor publishing this MUST:
+  1. Be fluent in both source and target languages.
+  2. Verify every fact and citation against the original sources.
+  3. Remove any AI hallucinations before publishing.
+  4. Confirm CC BY-SA attribution is correctly applied (see edit-summary.txt
+     and talk-template.txt files generated alongside this wikitext).
+See review-notes.md for items flagged for review.
+==============================================================================
+-->
+
+{{LLM-assisted translation|from=zh|article=九子奪嫡|oldid=88888888|reviewed=no}}
+
+The '''Nine Lords' War''' (九子奪嫡, ''jiǔ zǐ duó dí'') refers to the political struggle among nine of the late-reign sons of [[Kangxi Emperor|Emperor Kangxi]] of the [[Qing dynasty]] over succession to the [[Imperial throne of China|imperial throne]].<ref>{{cite book|title=清史稿|author=趙爾巽|year=1928}}</ref> The conflict ended with the accession of [[Yongzheng Emperor|Yinzhen, the fourth prince]] (皇四子胤禛).<ref name="qingshi" />
+
+== Background ==
+
+The [[Kangxi Emperor]] reigned for sixty-one years. Early in his reign he designated his second son, [[Yinreng]], as [[Crown Prince]]. Owing to the expanding influence of the [[Crown Prince's faction]] and concerns over Yinreng's personal conduct, Kangxi deposed the Crown Prince in the forty-seventh year of his reign (1708).<ref>{{cite book|title=康熙朝實錄|year=1731}}</ref>
+
+== Principal participants ==
+
+{| class="wikitable"
+|-
+! Birth order !! Name !! Faction
+|-
+| Eldest son || [[Yinzhi]] || First Prince's faction
+|-
+| Second son || [[Yinreng]] || Crown Prince's faction
+|-
+| Fourth son || [[Yinzhen]] || Fourth Prince's faction (later acceded as [[Yongzheng Emperor]])
+|-
+| Eighth son || [[Yinsi]] || Eighth Prince's faction
+|-
+| Fourteenth son || [[Yinti]] || Eighth Prince's faction (later phase)
+|}
+
+== Outcome ==
+
+In the eleventh month of the sixty-first year of Kangxi's reign (1722), the [[Kangxi Emperor]] died, and [[Yinzhen]] acceded to the throne as the [[Yongzheng Emperor]].<ref name="qingshi">{{cite journal|title=雍正繼位之謎研究|year=2010}}</ref> The Yongzheng Emperor subsequently purged his brothers in succession, renaming [[Yinsi]] and [[Yintang]] to "Akina" and "Seshe" (阿其那, 塞思黑) respectively and imprisoning them until their deaths.

@@ -8,6 +8,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from .factcheck import check_ref_integrity
 from .llm.base import TranslationResult
 from .translator import PreparedJob, SectionUnit
 
@@ -109,21 +110,23 @@ _HALLUCINATION_HINTS = re.compile(
 def build_review_notes(
     job: PreparedJob,
     translations: list[tuple[SectionUnit, TranslationResult]],
+    coverage_md: str | None = None,
 ) -> tuple[str, list[ReviewItem]]:
     """Produce review-notes.md flagging items the human editor must check."""
     items: list[ReviewItem] = []
 
     for unit, result in translations:
-        source_refs = len(_REF_RE.findall(unit.source_text))
-        translated_refs = len(_REF_RE.findall(result.translated_text))
-        if source_refs != translated_refs:
+        ref_issues = check_ref_integrity(
+            section_id=unit.section_id,
+            heading=unit.heading,
+            source_text=unit.source_text,
+            translated_text=result.translated_text,
+        )
+        for issue in ref_issues:
             items.append(ReviewItem(
-                section_id=unit.section_id,
-                heading=unit.heading or "(lead)",
-                note=(
-                    f"Citation count mismatch: source has {source_refs} <ref> tag(s), "
-                    f"translation has {translated_refs}. Verify no citations were dropped."
-                ),
+                section_id=issue.section_id,
+                heading=issue.heading or "(lead)",
+                note=f"[{issue.kind}] {issue.detail}",
             ))
 
         if _HALLUCINATION_HINTS.search(result.translated_text):
@@ -157,14 +160,23 @@ def build_review_notes(
 
     target_existing_note = ""
     if job.target_existing_title:
-        target_existing_note = (
-            f"\n## Existing target-language article\n\n"
-            f"The {job.target_lang}.wikipedia.org already has an article titled "
-            f"**{job.target_existing_title}**. This draft was generated from the "
-            f"{job.source_lang} source ONLY; you must manually compare and merge with "
-            f"the existing target version before publishing. Do NOT overwrite the "
-            f"existing article — instead, integrate any new information.\n"
-        )
+        if coverage_md:
+            target_existing_note = (
+                f"\n## Existing target-language article\n\n"
+                f"The {job.target_lang}.wikipedia.org already has an article titled "
+                f"**{job.target_existing_title}**. See `coverage-report.md` in this "
+                f"directory for a side-by-side section comparison and integration "
+                f"guidance.\n"
+            )
+        else:
+            target_existing_note = (
+                f"\n## Existing target-language article\n\n"
+                f"The {job.target_lang}.wikipedia.org already has an article titled "
+                f"**{job.target_existing_title}**. This draft was generated from the "
+                f"{job.source_lang} source ONLY; you must manually compare and merge with "
+                f"the existing target version before publishing. Do NOT overwrite the "
+                f"existing article — instead, integrate any new information.\n"
+            )
 
     lines: list[str] = [
         f"# Review notes for {job.article_title} ({job.source_lang} -> {job.target_lang})",
@@ -212,6 +224,7 @@ def write_output(
     job: PreparedJob,
     translations: list[tuple[SectionUnit, TranslationResult]],
     out_dir: Path,
+    coverage_md: str | None = None,
 ) -> dict[str, Path]:
     """Write all output files. Returns a map of name -> path."""
     out_dir = Path(out_dir) / _safe_dir_name(job.article_title)
@@ -219,7 +232,7 @@ def write_output(
 
     title_safe = _safe_dir_name(job.article_title)
     wikitext = assemble_wikitext(job, translations)
-    review_md, _ = build_review_notes(job, translations)
+    review_md, _ = build_review_notes(job, translations, coverage_md=coverage_md)
 
     paths = {
         "wikitext": out_dir / f"{title_safe}.wikitext",
@@ -227,6 +240,9 @@ def write_output(
         "talk_template": out_dir / "talk-template.txt",
         "review_notes": out_dir / "review-notes.md",
     }
+    if coverage_md is not None:
+        paths["coverage_report"] = out_dir / "coverage-report.md"
+        paths["coverage_report"].write_text(coverage_md, encoding="utf-8")
     paths["wikitext"].write_text(wikitext, encoding="utf-8")
     paths["edit_summary"].write_text(edit_summary(job) + "\n", encoding="utf-8")
     paths["talk_template"].write_text(talk_template(job) + "\n", encoding="utf-8")

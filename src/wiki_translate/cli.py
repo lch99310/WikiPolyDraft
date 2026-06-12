@@ -13,7 +13,8 @@ from pathlib import Path
 
 import click
 
-from .fetcher import fetch_article_from_url
+from .comparator import compare_sections, coverage_report_md
+from .fetcher import fetch_article, fetch_article_from_url
 from .formatter import write_output
 from .translator import (
     PreparedJob,
@@ -21,6 +22,28 @@ from .translator import (
     prepare_agent_driven,
     translate_standalone,
 )
+
+
+def _try_fetch_target_coverage(article, target_lang: str) -> str | None:
+    """If the source has a langlink to target_lang, try to fetch that article
+    and produce a coverage report. Returns markdown, or None if not applicable
+    or the fetch failed (the user shouldn't be blocked by a network glitch on
+    the target wiki — translation can still proceed).
+    """
+    target_title = article.langlink_for(target_lang)
+    if not target_title:
+        return None
+    try:
+        target_existing = fetch_article(target_lang, target_title)
+    except Exception as e:
+        click.echo(
+            f"Note: failed to fetch existing {target_lang} article "
+            f"'{target_title}' for coverage report ({e}). Continuing without it.",
+            err=True,
+        )
+        return None
+    coverage = compare_sections(article, target_existing)
+    return coverage_report_md(article, target_existing, coverage)
 
 
 DRAFT_REMINDER = (
@@ -65,6 +88,10 @@ def prepare(url: str, target: str, work_dir: Path) -> None:
             f"Note: {target}.wikipedia already has '{job.target_existing_title}'. "
             "The reviewing editor will need to compare and merge manually."
         )
+        coverage_md = _try_fetch_target_coverage(article, target)
+        if coverage_md:
+            (work_dir / "coverage-report.md").write_text(coverage_md, encoding="utf-8")
+            click.echo(f"Coverage report written to: {work_dir}/coverage-report.md")
     click.echo(f"Prompts written to: {work_dir}/prompts/")
     click.echo("Next: host agent reads each prompt, writes translation to "
                f"{work_dir}/translations/<section_id>.txt")
@@ -98,11 +125,18 @@ def finalize(work_dir: Path, out_dir: Path) -> None:
     except RuntimeError as e:
         raise click.ClickException(str(e))
 
-    paths = write_output(job, translations, out_dir)
+    coverage_md: str | None = None
+    coverage_path = work_dir / "coverage-report.md"
+    if coverage_path.exists():
+        coverage_md = coverage_path.read_text(encoding="utf-8")
+
+    paths = write_output(job, translations, out_dir, coverage_md=coverage_md)
     click.echo(f"Draft wikitext: {paths['wikitext']}")
     click.echo(f"Edit summary:   {paths['edit_summary']}")
     click.echo(f"Talk template:  {paths['talk_template']}")
     click.echo(f"Review notes:   {paths['review_notes']}")
+    if "coverage_report" in paths:
+        click.echo(f"Coverage report: {paths['coverage_report']}")
     click.echo(DRAFT_REMINDER, err=False)
 
 
@@ -142,11 +176,14 @@ def translate(url: str, target: str, out_dir: Path, model: str) -> None:
         target_existing_title=article.langlink_for(target),
         sections=[unit for unit, _ in translations],
     )
-    paths = write_output(job, translations, out_dir)
+    coverage_md = _try_fetch_target_coverage(article, target)
+    paths = write_output(job, translations, out_dir, coverage_md=coverage_md)
     click.echo(f"Draft wikitext: {paths['wikitext']}")
     click.echo(f"Edit summary:   {paths['edit_summary']}")
     click.echo(f"Talk template:  {paths['talk_template']}")
     click.echo(f"Review notes:   {paths['review_notes']}")
+    if "coverage_report" in paths:
+        click.echo(f"Coverage report: {paths['coverage_report']}")
     click.echo(DRAFT_REMINDER, err=False)
 
 

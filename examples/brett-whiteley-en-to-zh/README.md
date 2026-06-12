@@ -43,3 +43,15 @@ wiki-translate finalize ./wt-work --out ./output
    making accidental publication visible.
 5. **Translator notes** from the host agent are surfaced in `review-notes.md`
    so the reviewer knows where the AI made judgment calls.
+
+## What's NOT shown here
+
+This fixture has no `langlinks` to a Chinese article, so the **coverage
+report** feature isn't exercised. If the source article does have a langlink
+to the target language, `wiki-translate prepare` additionally fetches that
+existing target-language article and writes a `coverage-report.md` listing
+its sections side-by-side with the source, plus an integration warning.
+That output is wired into `review-notes.md` via the *Existing target-language
+article* section. See `examples/nine-sons-zh-to-en/` for the
+opposite-direction case (also without a target article — the asymmetry that
+motivated the whole tool).
