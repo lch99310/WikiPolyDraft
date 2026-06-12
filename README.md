@@ -1,40 +1,67 @@
-# wiki-translate
+# WikiPolyDraft
 
-AI-assisted Wikipedia article translation tool that produces **drafts for human review** — designed to help editors prepare cross-language Wikipedia translations more efficiently while respecting Wikipedia community policy.
+<h2 align="center">WikiPolyDraft —— AI-assisted Wikipedia translation drafts</h2>
 
-## ⚠️ Important Notice / 重要聲明
+<p align="center">
+  English | <a href="README.CN.md">中文</a>
+</p>
 
-**This tool produces DRAFTS, not publishable articles.**
-本工具產出的是「草稿」，不是「可直接發布的條目」。
+<p align="center">
+  <img alt="Version" src="https://img.shields.io/badge/version-v0.3a-brightgreen">
+  <img alt="License" src="https://img.shields.io/badge/licence-MIT-blue">
+  <img alt="Audience" src="https://img.shields.io/badge/audience-Wikipedia%20editors-orange">
+  <img alt="Status" src="https://img.shields.io/badge/output-DRAFT%20only-red">
+</p>
 
-- Wikipedia policy requires human review by editors fluent in both languages before any translated content is published. **This tool does NOT replace that review.**
-- 維基百科政策要求：所有翻譯內容必須由精通雙語的人類編輯審核後才能發布。**本工具不替代該審核流程。**
+> **One article. Two languages. A draft that respects the rules — and the reviewer.**
+
+WikiPolyDraft turns a Wikipedia URL into a **review-ready translation draft** — with attribution, a hallucination checklist, and the `{{LLM-assisted translation}}` template already in place. It does *not* publish. That's the point.
+
+---
+
+## ⚠️ Read this first
+
+**This tool produces DRAFTS. Not publishable articles.**
+
+- Wikipedia policy requires human review by an editor fluent in both languages before any translated content is published. **This tool does not replace that review.**
 - The author is **not affiliated** with the Wikimedia Foundation or any Wikipedia community.
 - The author assumes **no liability** for content published using this tool. Users are solely responsible for compliance with Wikipedia policies, copyright law, and the CC BY-SA 4.0 license.
-- Misuse — for example, publishing unreviewed AI translations into Wikipedia mainspace — **violates Wikipedia community guidelines** (see [Wikipedia:LLM-assisted translation](https://en.wikipedia.org/wiki/Wikipedia:LLM-assisted_translation)) and may result in account sanctions for the user.
+- Pushing unreviewed AI translations into Wikipedia mainspace **violates community guidelines** ([Wikipedia:LLM-assisted translation](https://en.wikipedia.org/wiki/Wikipedia:LLM-assisted_translation)) and may get your account sanctioned.
 
-## Motivation
+If you're looking for a one-click "translate and publish" bot, this is not it — and we won't build that.
 
-Wikipedia articles on the same topic often differ greatly in depth across languages, because volunteer editors are naturally more familiar with topics in their own language. This means readers in other languages may have limited access to the same body of knowledge.
+---
 
-This project explores whether modern LLMs can help **human editors** prepare high-quality cross-language drafts more efficiently, while keeping humans firmly in the loop for the review and publication steps that Wikipedia policy requires.
+## Why it exists
 
-The first phase supports **English ↔ Chinese** translation.
+The same Wikipedia article often looks very different across languages. The English entry for a topic might be a featured-quality 8,000 words; the Chinese entry might be three paragraphs — or missing entirely. Volunteers naturally edit in their native language, so the world's knowledge ends up unevenly distributed across language editions.
 
-## How It Works
+LLMs *can* help close the gap — but only if the human editor stays in the loop, and only if the tool makes their review job easier rather than harder. WikiPolyDraft is built around that constraint:
 
-```
-URL → fetch wikitext + langlinks → prepare prompts → LLM translates →
-      formatter adds CC BY-SA attribution + DRAFT banner → review-notes.md →
-      human editor reviews → human editor publishes
-```
+- Every draft carries a **DRAFT banner** and `reviewed=no` flag so it can't be mistaken for finished work.
+- Every draft ships with a **`review-notes.md`** that lists what to check first — hallucination candidates, low-confidence sections, citation URLs that 404.
+- The CLI has **no `--publish` flag**. It cannot call the Wikipedia edit API.
 
-Two LLM modes:
+The first phase supports **English ↔ Chinese**.
 
-- **Agent-driven (default for Skills)**: The CLI emits prompt files. A host agent (Claude Code, Codex, etc.) reads them, performs the translation in conversation, and writes results back. Zero API key needed; allows interactive refinement.
-- **Standalone**: The CLI calls an LLM API directly (Anthropic; OpenAI/Gemini planned). User brings their own API key.
+---
 
-## Install
+## What you get
+
+| What it does | What you get |
+|--------------|--------------|
+| **Fetches both sides** | Source article wikitext + langlinked target article (if it exists) so the LLM sees what's already there |
+| **Translates section-by-section** | Section-level prompts keep context tight and let you re-run a single section without redoing the whole article |
+| **Aligns with existing stubs** | If a target-language stub already exists, you get a per-section merge plan — keep, replace, or merge |
+| **Generates the CC BY-SA paperwork** | Edit summary with source permalink + `{{Translated page}}` for the talk page — both required by the license |
+| **Flags what to check** | `review-notes.md` lists hallucination candidates, weak sections, and (optionally) every citation URL that didn't HEAD-check 200 |
+| **Refuses to publish** | No `--publish` flag, no edit-API client, by design |
+
+---
+
+## Quick start
+
+### Install
 
 ```bash
 pip install -e .
@@ -42,23 +69,28 @@ pip install -e .
 pip install -e ".[anthropic]"
 ```
 
-## Quick Start
+### Three steps (agent-driven, recommended)
 
-### Agent-driven mode (recommended for use inside Claude Code / Codex CLI)
+Run this inside Claude Code, Codex CLI, or any agent host that can read prompt files and write back results.
+
+**1. Prepare — fetch source + target, emit prompts**
 
 ```bash
-# Step 1: fetch source + target-language version, emit prompt files
 wiki-translate prepare https://en.wikipedia.org/wiki/Brett_Whiteley \
   --target zh --out ./wt-work
+```
 
-# Step 2: (your agent reads ./wt-work/prompts/*.txt, performs translation,
-#          writes results to ./wt-work/translations/)
+**2. Translate — your agent reads `./wt-work/prompts/*.txt`, writes results to `./wt-work/translations/`**
 
-# Step 3: assemble final draft with CC BY-SA attribution + review-notes
+In conversation: *"translate the prompt files in ./wt-work."* The agent handles it.
+
+**3. Finalize — assemble the draft + attribution + review notes**
+
+```bash
 wiki-translate finalize ./wt-work --out ./output
 ```
 
-### Standalone mode
+### Standalone mode (no agent host, your own API key)
 
 ```bash
 export ANTHROPIC_API_KEY=sk-...
@@ -66,59 +98,97 @@ wiki-translate translate https://en.wikipedia.org/wiki/Brett_Whiteley \
   --target zh --out ./output
 ```
 
-## Output Files
+---
 
-For each translated article, `output/<title>/` contains:
+## What ends up in `output/<title>/`
 
 | File | Purpose |
 |---|---|
-| `<title>.wikitext` | The translated draft, with `{{LLM-assisted translation\|reviewed=no}}` template and a DRAFT banner |
-| `edit-summary.txt` | Ready-to-paste edit summary with original article permalink (required by CC BY-SA attribution) |
-| `talk-template.txt` | `{{Translated page}}` template for the article's talk page (required by CC BY-SA attribution) |
-| `review-notes.md` | Hallucination candidates, low-confidence sections, source verification results |
+| `<title>.wikitext` | Translated draft, with `{{LLM-assisted translation\|reviewed=no}}` and a DRAFT banner |
+| `edit-summary.txt` | Paste-ready edit summary with source permalink (required by CC BY-SA) |
+| `talk-template.txt` | `{{Translated page}}` for the article talk page (required by CC BY-SA) |
+| `review-notes.md` | Hallucination candidates, low-confidence sections, source-verification results |
 
-**The publishing editor must open `review-notes.md` and verify each item.** The DRAFT banner and `reviewed=no` flag ensure the maintenance category is visible to other editors if published prematurely.
+**Open `review-notes.md` first.** The DRAFT banner and `reviewed=no` flag are belt-and-suspenders: if a draft sneaks into mainspace before review, the maintenance category makes it visible to other editors.
 
-## Wikipedia Policy Compliance
+---
+
+## How it works
+
+```
+URL
+  ↓
+[prepare]  fetch wikitext + langlinks → split into sections → emit prompts
+  ↓
+[translate]  (agent or standalone LLM reads prompts, writes per-section drafts)
+  ↓
+[finalize]  assemble → add CC BY-SA attribution + DRAFT banner →
+            cross-check refs → write review-notes.md
+  ↓
+human editor reviews → human editor publishes
+```
+
+Two LLM modes:
+
+- **Agent-driven (default).** The CLI emits prompt files; an agent host (Claude Code, Codex, etc.) reads them, performs the translation in conversation, and writes results back. Zero API key required, allows interactive refinement, and the human is naturally in the loop.
+- **Standalone.** The CLI calls an LLM API directly. Anthropic supported today; OpenAI / Gemini planned. Bring your own API key.
+
+### Section alignment, when a target stub already exists
+
+If the source article has a langlink to an existing target-language article, `prepare` additionally:
+
+1. Fetches that target article.
+2. Writes a coverage-report skeleton.
+3. Emits `_alignment.prompt.txt` for the host agent — *which source sections map to which existing target sections?*
+
+After translation, `finalize` upgrades the coverage report with the alignment result and a **per-section merge plan**: keep the existing target text, replace with the translation, or merge. Add `--check-urls` to also HEAD-check every citation URL and surface the failures in `review-notes.md`.
+
+---
+
+## Worked example — 九子奪嫡 (zh → en)
+
+The Chinese Wikipedia article on the Qing dynasty succession dispute is rich; the English coverage is fragmentary. That asymmetry is exactly what this tool exists for.
+
+```bash
+wiki-translate prepare https://zh.wikipedia.org/wiki/九子夺嫡 \
+  --target en --out ./wt-work
+# (agent translates ./wt-work/prompts/*.txt)
+wiki-translate finalize ./wt-work --out ./output
+```
+
+You end up with `output/Nine_Sons/`:
+
+- `Nine_Sons.wikitext` — DRAFT-banner draft with the `{{LLM-assisted translation|reviewed=no}}` template
+- `edit-summary.txt` — `Translated from [[zh:九子夺嫡]] permalink ...` paste-ready for the publishing editor
+- `talk-template.txt` — `{{Translated page|zh|九子夺嫡|...}}` for the en.wiki talk page
+- `review-notes.md` — flagged items the editor must verify (names, dates, citations)
+
+The complete reproducible flow is checked into [`examples/nine-sons-zh-to-en/`](examples/nine-sons-zh-to-en/) and runs offline against a fixture.
+
+Two more end-to-end examples ship in [`examples/`](examples/) — including [`whiteley-aligned-v03`](examples/whiteley-aligned-v03/), which demonstrates the merge plan against an existing zh stub.
+
+---
+
+## Wikipedia policy compliance
 
 This tool is designed around [Wikipedia:LLM-assisted translation](https://en.wikipedia.org/wiki/Wikipedia:LLM-assisted_translation):
 
-1. The tool produces drafts; the human editor must be skilled in both languages to verify the translation.
-2. The output automatically includes the `{{LLM-assisted translation}}` template.
-3. `review-notes.md` highlights items the editor must check (hallucinations, sources, citations).
-4. Attribution is generated in the format required by CC BY-SA 4.0 (edit summary + `{{Translated page}}` on talk).
-5. The CLI has **no** `--publish` flag and does not call the Wikipedia edit API.
+1. The output is a **draft**; the human editor must be skilled in both languages to verify it.
+2. The `{{LLM-assisted translation}}` template is inserted automatically.
+3. `review-notes.md` highlights what the editor must check (hallucinations, sources, citations).
+4. CC BY-SA 4.0 attribution is generated as required — edit summary + `{{Translated page}}` on talk.
+5. The CLI has **no `--publish` flag** and does not call the Wikipedia edit API.
 
-## Examples
+---
 
-Three end-to-end examples are checked in, each with its own `reproduce.py`
-that drives the pipeline against a synthetic fixture (so they run offline):
+## Project status
 
-- [`examples/brett-whiteley-en-to-zh/`](examples/brett-whiteley-en-to-zh/) —
-  English to Chinese translation when no target article exists.
-- [`examples/nine-sons-zh-to-en/`](examples/nine-sons-zh-to-en/) —
-  Chinese to English translation of 九子奪嫡 — the rich-on-one-wiki,
-  missing-on-the-other asymmetry that motivated this tool.
-- [`examples/whiteley-aligned-v03/`](examples/whiteley-aligned-v03/) —
-  Brett Whiteley with an **existing zh stub**: demonstrates LLM-driven
-  cross-language section alignment, the per-section merge plan, and the
-  Level 2 URL reachability check surfaced in `review-notes.md`.
+Early — v0.3a. The pipeline runs end-to-end, the safeguards are in place, and the three examples reproduce offline. Expect rough edges in section alignment for highly asymmetric articles. PRs that improve translation quality, expand language pairs, or strengthen the review-assistance features are welcome.
 
-If the source article has a langlink to an existing target-language article,
-`wiki-translate prepare` additionally fetches that article, writes a
-coverage-report skeleton, and emits an `_alignment.prompt.txt` for the host
-agent. After translation, `finalize` upgrades the coverage report with the
-alignment result and a per-section merge plan. Add `--check-urls` to also
-HEAD-check every citation URL.
+**Not welcome**: PRs that add automated publishing to Wikipedia. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Project Status
-
-Early. See plan and [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Contributing
-
-We welcome contributions that improve translation quality, expand language support, or strengthen the review-assistance features. **We do not accept pull requests that add automated publishing to Wikipedia** — see CONTRIBUTING.md.
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Translated article content remains under CC BY-SA 4.0, inherited from Wikipedia.
