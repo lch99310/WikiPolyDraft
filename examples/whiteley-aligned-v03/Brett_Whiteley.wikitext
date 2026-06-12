@@ -1,0 +1,32 @@
+<!--
+==============================================================================
+DRAFT - DO NOT PUBLISH WITHOUT HUMAN REVIEW
+==============================================================================
+This article was prepared by an AI-assisted translation tool (wiki-translate).
+Per Wikipedia:LLM-assisted_translation, the editor publishing this MUST:
+  1. Be fluent in both source and target languages.
+  2. Verify every fact and citation against the original sources.
+  3. Remove any AI hallucinations before publishing.
+  4. Confirm CC BY-SA attribution is correctly applied (see edit-summary.txt
+     and talk-template.txt files generated alongside this wikitext).
+See review-notes.md for items flagged for review.
+==============================================================================
+-->
+
+{{LLM-assisted translation|from=en|article=Brett Whiteley|oldid=111222333|reviewed=no}}
+
+{{Infobox artist
+| name = Brett Whiteley
+| birth_date = 7 April 1939
+| death_date = 15 June 1992
+}}
+
+'''布雷特·懷特利'''（Brett Whiteley，1939年4月7日—1992年6月15日）是一位[[painter|澳洲畫家]]，以其鮮豔的色彩運用與描繪[[Sydney Harbour|雪梨港]]的作品聞名。<ref>{{cite web|title=Australian Art profile|url=https://example.org/whiteley-profile}}</ref> 他曾三度獲得[[Archibald Prize|阿契博獎]]。<ref name="archibald" />
+
+== 早年生涯 ==
+
+懷特利出生於[[Sydney|雪梨]]，曾就讀於[[Julian Ashton Art School|朱利安·阿什頓藝術學校]]。<ref>{{cite web|title=Whiteley early years|url=https://example.invalid/whiteley-bio}}</ref>
+
+== 評價 ==
+
+懷特利在 1970 年代後期的展覽吸引了強烈的評論界關注。<ref name="archibald">{{cite journal|title=Whiteley and the Archibald|url=https://example.org/archibald-whiteley}}</ref>

@@ -13,7 +13,18 @@ from pathlib import Path
 
 import click
 
-from .comparator import compare_sections, coverage_report_md
+import json
+
+from .comparator import (
+    compare_sections,
+    coverage_report_md,
+    emit_alignment_prompt,
+    read_alignment_response,
+    read_target_info,
+    render_coverage_md,
+    write_target_info,
+)
+from .factcheck import UrlCheck, check_url_reachability, extract_ref_urls
 from .fetcher import fetch_article, fetch_article_from_url
 from .formatter import write_output
 from .translator import (
@@ -23,16 +34,21 @@ from .translator import (
     translate_standalone,
 )
 
+_URL_CHECK_FILENAME = "url-check.json"
 
-def _try_fetch_target_coverage(article, target_lang: str) -> str | None:
-    """If the source has a langlink to target_lang, try to fetch that article
-    and produce a coverage report. Returns markdown, or None if not applicable
-    or the fetch failed (the user shouldn't be blocked by a network glitch on
-    the target wiki — translation can still proceed).
+
+def _try_prepare_target_artifacts(article, target_lang: str, work_dir: Path) -> bool:
+    """If the source has a langlink to target_lang, try to fetch that article,
+    write a V0.2-style coverage report (no alignment yet), an alignment prompt
+    for the host agent, and a target-info.json that finalize will rebuild from.
+
+    Returns True if all of the above succeeded; False if no langlink exists,
+    or if the network fetch failed (we don't want a flaky target wiki to
+    block the actual translation).
     """
     target_title = article.langlink_for(target_lang)
     if not target_title:
-        return None
+        return False
     try:
         target_existing = fetch_article(target_lang, target_title)
     except Exception as e:
@@ -41,9 +57,76 @@ def _try_fetch_target_coverage(article, target_lang: str) -> str | None:
             f"'{target_title}' for coverage report ({e}). Continuing without it.",
             err=True,
         )
-        return None
+        return False
     coverage = compare_sections(article, target_existing)
-    return coverage_report_md(article, target_existing, coverage)
+    skeleton = coverage_report_md(article, target_existing, coverage, alignments=None)
+    (work_dir / "coverage-report.md").write_text(skeleton, encoding="utf-8")
+    emit_alignment_prompt(article, target_existing, work_dir)
+    write_target_info(target_existing, work_dir)
+    return True
+
+
+def _run_url_check(article, work_dir: Path) -> list[UrlCheck]:
+    urls = extract_ref_urls(article.wikitext)
+    if not urls:
+        return []
+    click.echo(f"Checking reachability of {len(urls)} citation URL(s)...")
+    results = check_url_reachability(urls)
+    (work_dir / _URL_CHECK_FILENAME).write_text(
+        json.dumps(
+            [{"url": r.url, "status": r.status, "detail": r.detail} for r in results],
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return results
+
+
+def _load_url_check(work_dir: Path) -> list[UrlCheck]:
+    path = work_dir / _URL_CHECK_FILENAME
+    if not path.exists():
+        return []
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    return [UrlCheck(url=r["url"], status=r["status"], detail=r["detail"]) for r in raw]
+
+
+def _heading_text_from_unit(heading_marker: str) -> str | None:
+    """`== Early life ==` -> `Early life`; empty / lead -> None."""
+    h = (heading_marker or "").strip()
+    if not h:
+        return None
+    return h.strip("=").strip() or None
+
+
+def _rebuild_coverage_with_alignment(job: PreparedJob, work_dir: Path) -> str | None:
+    """If we have target-info.json and an alignment response, return the
+    upgraded coverage report. Otherwise return the existing skeleton (if
+    present) or None.
+    """
+    target_info = read_target_info(work_dir)
+    coverage_path = work_dir / "coverage-report.md"
+    existing = coverage_path.read_text(encoding="utf-8") if coverage_path.exists() else None
+    if target_info is None:
+        return existing
+    alignments = read_alignment_response(work_dir)
+    source_headings = [
+        h for h in (_heading_text_from_unit(s.heading) for s in job.sections) if h
+    ]
+    upgraded = render_coverage_md(
+        source_lang=job.source_lang,
+        source_title=job.article_title,
+        source_url=job.article_url,
+        source_revision=job.revision_id,
+        source_headings=source_headings,
+        target_lang=target_info["lang"],
+        target_title=target_info["title"],
+        target_url=target_info["article_url"],
+        target_revision=int(target_info["revision_id"]),
+        target_headings=list(target_info["headings"]),
+        alignments=alignments,
+    )
+    return upgraded
 
 
 DRAFT_REMINDER = (
@@ -72,7 +155,17 @@ def main() -> None:
     show_default=True,
     help="Work directory where prompts and translations will live.",
 )
-def prepare(url: str, target: str, work_dir: Path) -> None:
+@click.option(
+    "--check-urls/--no-check-urls",
+    default=False,
+    show_default=True,
+    help=(
+        "Level 2 fact-check: HEAD-check every citation URL in the source "
+        "article and surface dead links in review-notes.md. Off by default "
+        "because it hits the network and can be slow on big articles."
+    ),
+)
+def prepare(url: str, target: str, work_dir: Path, check_urls: bool) -> None:
     """Fetch the source article and emit prompts for the host agent."""
     article = fetch_article_from_url(url)
     if article.lang == target:
@@ -88,10 +181,16 @@ def prepare(url: str, target: str, work_dir: Path) -> None:
             f"Note: {target}.wikipedia already has '{job.target_existing_title}'. "
             "The reviewing editor will need to compare and merge manually."
         )
-        coverage_md = _try_fetch_target_coverage(article, target)
-        if coverage_md:
-            (work_dir / "coverage-report.md").write_text(coverage_md, encoding="utf-8")
-            click.echo(f"Coverage report written to: {work_dir}/coverage-report.md")
+        if _try_prepare_target_artifacts(article, target, work_dir):
+            click.echo(f"Coverage report skeleton: {work_dir}/coverage-report.md")
+            click.echo(f"Alignment prompt: {work_dir}/prompts/_alignment.prompt.txt")
+    if check_urls:
+        results = _run_url_check(article, work_dir)
+        bad = [r for r in results if r.status != "ok"]
+        click.echo(
+            f"URL check: {len(results)} URL(s), {len(bad)} non-OK (see "
+            f"{work_dir}/url-check.json)"
+        )
     click.echo(f"Prompts written to: {work_dir}/prompts/")
     click.echo("Next: host agent reads each prompt, writes translation to "
                f"{work_dir}/translations/<section_id>.txt")
@@ -125,12 +224,16 @@ def finalize(work_dir: Path, out_dir: Path) -> None:
     except RuntimeError as e:
         raise click.ClickException(str(e))
 
-    coverage_md: str | None = None
-    coverage_path = work_dir / "coverage-report.md"
-    if coverage_path.exists():
-        coverage_md = coverage_path.read_text(encoding="utf-8")
+    coverage_md = _rebuild_coverage_with_alignment(job, work_dir)
+    url_checks = _load_url_check(work_dir)
 
-    paths = write_output(job, translations, out_dir, coverage_md=coverage_md)
+    paths = write_output(
+        job,
+        translations,
+        out_dir,
+        coverage_md=coverage_md,
+        url_checks=url_checks,
+    )
     click.echo(f"Draft wikitext: {paths['wikitext']}")
     click.echo(f"Edit summary:   {paths['edit_summary']}")
     click.echo(f"Talk template:  {paths['talk_template']}")
@@ -176,7 +279,17 @@ def translate(url: str, target: str, out_dir: Path, model: str) -> None:
         target_existing_title=article.langlink_for(target),
         sections=[unit for unit, _ in translations],
     )
-    coverage_md = _try_fetch_target_coverage(article, target)
+    # Standalone mode renders an unaligned coverage report when applicable;
+    # alignment is an agent-driven feature only.
+    coverage_md = None
+    target_title = article.langlink_for(target)
+    if target_title:
+        try:
+            target_existing = fetch_article(target, target_title)
+            coverage = compare_sections(article, target_existing)
+            coverage_md = coverage_report_md(article, target_existing, coverage)
+        except Exception as e:
+            click.echo(f"Note: target coverage skipped ({e}).", err=True)
     paths = write_output(job, translations, out_dir, coverage_md=coverage_md)
     click.echo(f"Draft wikitext: {paths['wikitext']}")
     click.echo(f"Edit summary:   {paths['edit_summary']}")

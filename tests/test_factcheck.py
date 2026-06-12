@@ -1,6 +1,19 @@
-"""Tests for factcheck Level 1 (ref integrity)."""
+"""Tests for factcheck Levels 1 (ref integrity) and 2 (URL reachability)."""
 
-from wiki_translate.factcheck import Ref, check_ref_integrity, extract_refs
+from dataclasses import dataclass
+from unittest.mock import MagicMock
+
+import pytest
+import requests
+
+from wiki_translate.factcheck import (
+    Ref,
+    UrlCheck,
+    check_ref_integrity,
+    check_url_reachability,
+    extract_ref_urls,
+    extract_refs,
+)
 
 
 class TestExtractRefs:
@@ -74,3 +87,70 @@ class TestCheckRefIntegrity:
         tgt = "<ref>cite content</ref>"
         issues = check_ref_integrity("s", "h", src, tgt)
         assert issues == []
+
+
+class TestExtractRefUrls:
+    def test_one_url_per_ref(self):
+        wt = (
+            "Body <ref>{{cite web|url=https://example.com/a}}</ref> "
+            "more <ref name=\"b\">https://example.org/b page</ref> end"
+        )
+        assert extract_ref_urls(wt) == ["https://example.com/a", "https://example.org/b"]
+
+    def test_dedup(self):
+        wt = (
+            "<ref>https://example.com/a</ref> "
+            "<ref name=\"dup\">https://example.com/a alt</ref>"
+        )
+        assert extract_ref_urls(wt) == ["https://example.com/a"]
+
+    def test_trims_trailing_punctuation(self):
+        wt = "<ref>see https://example.com/page.</ref>"
+        assert extract_ref_urls(wt) == ["https://example.com/page"]
+
+    def test_ignores_urls_outside_refs(self):
+        wt = "Body text https://example.com/inline more <ref>https://cite.example.com</ref>"
+        assert extract_ref_urls(wt) == ["https://cite.example.com"]
+
+
+class TestCheckUrlReachability:
+    def _session_returning(self, status_code: int):
+        sess = MagicMock()
+        resp = MagicMock()
+        resp.status_code = status_code
+        sess.head.return_value = resp
+        return sess
+
+    def test_ok_status(self):
+        sess = self._session_returning(200)
+        results = check_url_reachability(["https://example.com/a"], session=sess)
+        assert results == [UrlCheck(url="https://example.com/a", status="ok", detail="HTTP 200")]
+
+    def test_dead_404(self):
+        sess = self._session_returning(404)
+        results = check_url_reachability(["https://example.com/missing"], session=sess)
+        assert results[0].status == "dead"
+        assert "404" in results[0].detail
+
+    def test_405_falls_back_to_get(self):
+        sess = MagicMock()
+        head_resp = MagicMock(status_code=405)
+        get_resp = MagicMock(status_code=200)
+        sess.head.return_value = head_resp
+        sess.get.return_value = get_resp
+        results = check_url_reachability(["https://example.com/x"], session=sess)
+        assert results[0].status == "ok"
+        sess.get.assert_called_once()
+
+    def test_timeout_handled(self):
+        sess = MagicMock()
+        sess.head.side_effect = requests.exceptions.Timeout()
+        results = check_url_reachability(["https://example.com/slow"], session=sess, timeout=1.0)
+        assert results[0].status == "timeout"
+
+    def test_generic_request_error_handled(self):
+        sess = MagicMock()
+        sess.head.side_effect = requests.exceptions.ConnectionError("dns")
+        results = check_url_reachability(["https://nope.invalid"], session=sess)
+        assert results[0].status == "error"
+        assert "dns" in results[0].detail

@@ -8,7 +8,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from .factcheck import check_ref_integrity
+from .factcheck import UrlCheck, check_ref_integrity
 from .llm.base import TranslationResult
 from .translator import PreparedJob, SectionUnit
 
@@ -111,6 +111,7 @@ def build_review_notes(
     job: PreparedJob,
     translations: list[tuple[SectionUnit, TranslationResult]],
     coverage_md: str | None = None,
+    url_checks: list[UrlCheck] | None = None,
 ) -> tuple[str, list[ReviewItem]]:
     """Produce review-notes.md flagging items the human editor must check."""
     items: list[ReviewItem] = []
@@ -217,6 +218,33 @@ def build_review_notes(
             lines.append(item.note)
             lines.append("")
 
+    if url_checks:
+        bad = [c for c in url_checks if c.status != "ok"]
+        lines += ["", "## Citation URL reachability (Level 2 fact-check)", ""]
+        lines.append(
+            f"Checked {len(url_checks)} citation URL(s) from the source article. "
+            f"{len(bad)} did not respond with a 2xx/3xx status."
+        )
+        lines.append("")
+        if bad:
+            lines.append("| Status | URL | Detail |")
+            lines.append("| --- | --- | --- |")
+            for c in bad:
+                # Escape pipe chars in URLs to keep the markdown table valid.
+                safe_url = c.url.replace("|", "%7C")
+                safe_detail = c.detail.replace("|", "/")
+                lines.append(f"| {c.status} | `{safe_url}` | {safe_detail} |")
+            lines += [
+                "",
+                "Verify each: dead links should be replaced with archived "
+                "copies (e.g. Wayback Machine) or a different reliable source.",
+                "",
+            ]
+        else:
+            lines.append("All citation URLs reachable. Reachable ≠ accurate — "
+                         "you still need to verify the citation actually supports the claim.")
+            lines.append("")
+
     return "\n".join(lines) + "\n", items
 
 
@@ -225,6 +253,7 @@ def write_output(
     translations: list[tuple[SectionUnit, TranslationResult]],
     out_dir: Path,
     coverage_md: str | None = None,
+    url_checks: list[UrlCheck] | None = None,
 ) -> dict[str, Path]:
     """Write all output files. Returns a map of name -> path."""
     out_dir = Path(out_dir) / _safe_dir_name(job.article_title)
@@ -232,7 +261,9 @@ def write_output(
 
     title_safe = _safe_dir_name(job.article_title)
     wikitext = assemble_wikitext(job, translations)
-    review_md, _ = build_review_notes(job, translations, coverage_md=coverage_md)
+    review_md, _ = build_review_notes(
+        job, translations, coverage_md=coverage_md, url_checks=url_checks,
+    )
 
     paths = {
         "wikitext": out_dir / f"{title_safe}.wikitext",

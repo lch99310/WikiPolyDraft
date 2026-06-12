@@ -177,8 +177,27 @@ def translate_standalone(
 def _emit_agent_readme(work_dir: Path, job: PreparedJob) -> None:
     target_note = (
         f"\n  Note: The target language Wikipedia already has an article titled "
-        f"'{job.target_existing_title}'. The reviewing editor should compare and merge "
-        f"manually; this MVP only translates the source article.\n"
+        f"'{job.target_existing_title}'. After translating each section, also "
+        f"complete the alignment prompt (see below) so finalize can produce an "
+        f"upgraded coverage report.\n"
+        if job.target_existing_title
+        else ""
+    )
+    alignment_block = (
+        """
+## Alignment task (only when an existing target article exists)
+
+If `prompts/_alignment.prompt.txt` is present, it contains a section-heading
+alignment task. After (or before) translating section bodies:
+
+1. Read `prompts/_alignment.prompt.txt`.
+2. Produce the alignment lines as the prompt instructs (MATCH / ONLY-SOURCE
+   / ONLY-TARGET, one per line, no extra commentary).
+3. Write the response to `translations/_alignment.txt`.
+
+`wiki-translate finalize` will read it and upgrade `coverage-report.md` with
+an alignment table and a per-section merge plan for the reviewer.
+"""
         if job.target_existing_title
         else ""
     )
@@ -189,13 +208,14 @@ Source permalink: {job.permalink}
 {target_note}
 ## Your task (host agent)
 
-1. For each file in `prompts/`, read it and follow the instructions inside.
+1. For each file in `prompts/` (other than ones starting with `_`), read it
+   and follow the instructions inside.
 2. Write your translation to `translations/<same-section-id>.txt`.
    - The filename must match: a prompt at `prompts/001-lead.prompt.txt`
      produces a translation at `translations/001-lead.txt`.
 3. When all sections are translated, the user (or you) runs:
    `wiki-translate finalize {work_dir}`
-
+{alignment_block}
 ## Reminder
 
 This produces a DRAFT for human review. Per Wikipedia:LLM-assisted_translation,

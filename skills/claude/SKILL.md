@@ -84,4 +84,14 @@ Tell the user:
 
 ## If the target language already has an article
 
-The CLI detects this via langlinks and notes it in `AGENT_README.md` and `review-notes.md`. In MVP, this skill only translates the source — it does not merge with the existing target article. Tell the user they must manually compare and integrate (not overwrite) the existing version. Future versions will support automated comparison and merging.
+The CLI detects this via langlinks, fetches the existing target article, and writes both a `coverage-report.md` skeleton and an extra prompt at `./wt-work/prompts/_alignment.prompt.txt`. **You must also answer the alignment prompt** as part of your task:
+
+1. Read `_alignment.prompt.txt` — it lists the level-2 section headings on each side and asks you to map them.
+2. Write your answer to `./wt-work/translations/_alignment.txt` using the exact format the prompt specifies (`MATCH:` / `ONLY-SOURCE:` / `ONLY-TARGET:`, one per line, no extra commentary).
+3. `wiki-translate finalize` will read it back and produce an upgraded `coverage-report.md` containing the alignment table plus a per-section merge plan telling the reviewer where to integrate, where to add as a new section, and where to leave alone.
+
+The tool does NOT auto-merge or overwrite the existing target article. The merge plan is a suggestion for the human reviewer.
+
+## Optional: citation URL reachability (Level 2 fact-check)
+
+If the user wants to also flag dead citation URLs in the source article, add `--check-urls` to the `prepare` invocation. This HEAD-checks every URL inside `<ref>` blocks and surfaces non-2xx/3xx results in the final `review-notes.md`. It hits the network and can be slow on long articles, so it is off by default.

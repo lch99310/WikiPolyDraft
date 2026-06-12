@@ -91,20 +91,25 @@ This tool is designed around [Wikipedia:LLM-assisted translation](https://en.wik
 
 ## Examples
 
-Two end-to-end examples are checked in, each with its own `reproduce.py`
+Three end-to-end examples are checked in, each with its own `reproduce.py`
 that drives the pipeline against a synthetic fixture (so they run offline):
 
 - [`examples/brett-whiteley-en-to-zh/`](examples/brett-whiteley-en-to-zh/) —
-  English to Chinese translation of an Australian-painter article.
+  English to Chinese translation when no target article exists.
 - [`examples/nine-sons-zh-to-en/`](examples/nine-sons-zh-to-en/) —
-  Chinese to English translation of 九子奪嫡 (a Qing-dynasty succession
-  struggle), the exact kind of asymmetry — rich coverage on one wiki,
-  no article on the other — that motivated this tool.
+  Chinese to English translation of 九子奪嫡 — the rich-on-one-wiki,
+  missing-on-the-other asymmetry that motivated this tool.
+- [`examples/whiteley-aligned-v03/`](examples/whiteley-aligned-v03/) —
+  Brett Whiteley with an **existing zh stub**: demonstrates LLM-driven
+  cross-language section alignment, the per-section merge plan, and the
+  Level 2 URL reachability check surfaced in `review-notes.md`.
 
 If the source article has a langlink to an existing target-language article,
-`wiki-translate prepare` additionally produces a `coverage-report.md` listing
-both wikis' sections side-by-side with integration guidance (do NOT
-overwrite the existing article).
+`wiki-translate prepare` additionally fetches that article, writes a
+coverage-report skeleton, and emits an `_alignment.prompt.txt` for the host
+agent. After translation, `finalize` upgrades the coverage report with the
+alignment result and a per-section merge plan. Add `--check-urls` to also
+HEAD-check every citation URL.
 
 ## Project Status
 

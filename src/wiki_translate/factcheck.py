@@ -1,23 +1,26 @@
-"""Level 1 source-integrity checks for translations.
+"""Source-integrity checks for translations.
 
-Compares the `<ref>` citations in the source section with those in the
-translated section. Flags:
+Level 1 (always on, no network): citation preservation.
+    Compares the `<ref>` citations in the source section with those in the
+    translated section. Flags:
+    - **missing**: a citation was in the source but is gone from the translation
+    - **extra**: the translation has a citation that wasn't in the source
+      (almost certainly an LLM hallucination — refs are not invented)
+    - **content_changed**: a named ref was preserved but its content was modified
 
-- **missing**: a citation was in the source but is gone from the translation
-- **extra**: the translation has a citation that wasn't in the source
-  (almost certainly an LLM hallucination — refs are not invented)
-- **content_changed**: a named ref was preserved but its content was modified
-  (the LLM is told to keep refs verbatim; any change needs review)
+Level 2 (opt-in, hits the network): citation URL reachability.
+    For URLs found inside `<ref>` blocks of the source article, issues a HEAD
+    request (HEAD-falling-back-to-GET) and reports dead links / timeouts so
+    the reviewer can patch them before publishing.
 
-These are mechanical checks. They do not verify that the cited source is
-reliable, that it actually supports the claim, or that the URL still works
-(those are Level 2 and Level 3, deferred to V0.3).
+Level 3 (deferred): cross-checking factual claims against external sources.
 """
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Optional
 
 
 _REF_RE = re.compile(
@@ -142,3 +145,68 @@ def check_ref_integrity(
         ))
 
     return issues
+
+
+# --- Level 2: URL reachability ----------------------------------------------
+
+_URL_RE = re.compile(
+    r"""https?://[^\s<>\]\|"'\}]+""",
+    re.IGNORECASE,
+)
+_URL_TRIM_CHARS = ".,;:)]}"
+
+
+@dataclass
+class UrlCheck:
+    url: str
+    status: str  # "ok" | "dead" | "timeout" | "error" | "skipped"
+    detail: str
+
+
+def extract_ref_urls(wikitext: str) -> list[str]:
+    """Extract distinct HTTP(S) URLs that appear inside <ref>...</ref> blocks.
+
+    URLs in body prose are excluded — only citation URLs matter for the
+    reachability check. Order is preserved; duplicates are removed.
+    """
+    seen: list[str] = []
+    for ref in extract_refs(wikitext):
+        for m in _URL_RE.finditer(ref.content):
+            url = m.group(0).rstrip(_URL_TRIM_CHARS)
+            if url and url not in seen:
+                seen.append(url)
+    return seen
+
+
+def check_url_reachability(
+    urls: list[str],
+    timeout: float = 5.0,
+    session: Optional[object] = None,
+) -> list[UrlCheck]:
+    """HEAD-check each URL, falling back to GET on 405/501. Returns one result per URL.
+
+    On any unexpected exception or DNS failure, the URL is reported as
+    `error` rather than crashing the run; reachability is best-effort.
+    """
+    import requests
+
+    sess = session or requests.Session()
+    results: list[UrlCheck] = []
+    for url in urls:
+        try:
+            resp = sess.head(url, allow_redirects=True, timeout=timeout)
+            # Some servers refuse HEAD; retry with GET (no body needed; we
+            # only inspect status). Stream + close to avoid downloading body.
+            if resp.status_code in (405, 501):
+                resp = sess.get(url, allow_redirects=True, timeout=timeout, stream=True)
+                resp.close()
+            status_code = resp.status_code
+            if status_code < 400:
+                results.append(UrlCheck(url=url, status="ok", detail=f"HTTP {status_code}"))
+            else:
+                results.append(UrlCheck(url=url, status="dead", detail=f"HTTP {status_code}"))
+        except requests.exceptions.Timeout:
+            results.append(UrlCheck(url=url, status="timeout", detail=f"no response after {timeout}s"))
+        except requests.exceptions.RequestException as e:
+            results.append(UrlCheck(url=url, status="error", detail=str(e)[:200]))
+    return results
