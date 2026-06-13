@@ -156,10 +156,21 @@ URL
 
 工具在這個案例裡幫忙處理掉的事：`{{Infobox Australian place}}` 的所有參數乾淨地翻譯成中文版、用對了 `{{langx|en|...}}` 而不是英文的 `{{lang-en|...}}`、逐章節合併計畫讓既有中文殘篇的 lead 被保留下來，其他章節則從英文版重新展開。CC BY-SA 編輯摘要 + 討論頁的 `{{Translated page}}` 都是自動產出的。
 
+
+
 <br>
 <div style="display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 16px;">
-  <img src="english.png" style="height: 250px; width: auto; max-width: 48%; object-fit: contain;">
-  <img src="chinese.png" style="height: 250px; width: auto; max-width: 48%; object-fit: contain;">
+  
+  <div style="text-align: center; max-width: 48%;">
+    <img src="english.png" style="height: 250px; width: auto; max-width: 48%; object-fit: contain;">
+    <div style="font-size: 14px; color: #666; margin-top: 8px;">Barangaroo in Wikipedia English page </div>
+  </div>
+
+  <div style="text-align: center; max-width: 48%;">
+    <img src="chinese.png" style="height: 250px; width: auto; max-width: 48%; object-fit: contain;">
+    <div style="font-size: 14px; color: #666; margin-top: 8px;">巴蘭加魯 維基百科中文頁面</div>
+  </div>
+
 </div>
 <br>
 
