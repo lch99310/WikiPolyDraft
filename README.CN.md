@@ -145,6 +145,15 @@ URL
 
 ---
 
+## 實際成果 —— 巴蘭加魯（en → zh，已發佈）
+
+一個用 WikiPolyDraft 從頭做到尾、已發佈到中文維基百科的真實案例：
+
+- **來源條目**：[Barangaroo, New South Wales](https://en.wikipedia.org/wiki/Barangaroo,_New_South_Wales)（en.wikipedia.org）
+- **發佈後的中文條目**：[巴蘭加魯 (新南威爾斯州)](https://zh.wikipedia.org/wiki/%E5%B7%B4%E8%98%AD%E5%8A%A0%E9%AD%AF_(%E6%96%B0%E5%8D%97%E5%A8%81%E7%88%BE%E6%96%AF%E5%B7%9E))（zh.wikipedia.org）
+
+工具在這個案例裡幫忙處理掉的事：`{{Infobox Australian place}}` 的所有參數乾淨地翻譯成中文版、用對了 `{{langx|en|...}}` 而不是英文的 `{{lang-en|...}}`、逐章節合併計畫讓既有中文殘篇的 lead 被保留下來，其他章節則從英文版重新展開。CC BY-SA 編輯摘要 + 討論頁的 `{{Translated page}}` 都是自動產出的。
+
 ## 實際範例 —— 九子奪嫡（zh → en）
 
 中文版「九子奪嫡」內容豐富；英文版只有零碎片段。這種落差正是這個工具存在的理由。
