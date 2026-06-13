@@ -156,7 +156,12 @@ A real Wikipedia article translated and published with WikiPolyDraft, end to end
 
 Notable things the tool handled well: the `{{Infobox Australian place}}` parameters translated cleanly into zh, the `{{langx|en|...}}` template was used (not `{{lang-en|...}}`), and the per-section merge plan let the existing zh stub's lead be preserved while the rest of the article was expanded from scratch. The CC BY-SA edit summary + `{{Translated page}}` on the talk page were generated automatically.
 
-
+<br>
+<div style="display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 16px;">
+  <img src="english.png" style="height: 250px; width: auto; max-width: 48%; object-fit: contain;">
+  <img src="chinese.png" style="height: 250px; width: auto; max-width: 48%; object-fit: contain;">
+</div>
+<br>
 
 ---
 
