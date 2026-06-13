@@ -145,6 +145,15 @@ After translation, `finalize` upgrades the coverage report with the alignment re
 
 ---
 
+## Showcase — Barangaroo, NSW (en → zh, published)
+
+A real Wikipedia article translated and published with WikiPolyDraft, end to end:
+
+- **Source**: [Barangaroo, New South Wales](https://en.wikipedia.org/wiki/Barangaroo,_New_South_Wales) (en.wikipedia.org)
+- **Published draft**: [巴蘭加魯 (新南威爾斯州)](https://zh.wikipedia.org/wiki/%E5%B7%B4%E8%98%AD%E5%8A%A0%E9%AD%AF_(%E6%96%B0%E5%8D%97%E5%A8%81%E7%88%BE%E6%96%AF%E5%B7%9E)) (zh.wikipedia.org)
+
+Notable things the tool handled well: the `{{Infobox Australian place}}` parameters translated cleanly into zh, the `{{langx|en|...}}` template was used (not `{{lang-en|...}}`), and the per-section merge plan let the existing zh stub's lead be preserved while the rest of the article was expanded from scratch. The CC BY-SA edit summary + `{{Translated page}}` on the talk page were generated automatically.
+
 ## Worked example — 九子奪嫡 (zh → en)
 
 The Chinese Wikipedia article on the Qing dynasty succession dispute is rich; the English coverage is fragmentary. That asymmetry is exactly what this tool exists for.
