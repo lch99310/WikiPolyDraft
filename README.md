@@ -2,6 +2,8 @@
 
 <h2 align="center">WikiPolyDraft —— AI-assisted Wikipedia translation drafts</h2>
 
+![](pic.png)
+
 <p align="center">
   English | <a href="README.CN.md">中文</a>
 </p>
@@ -154,27 +156,7 @@ A real Wikipedia article translated and published with WikiPolyDraft, end to end
 
 Notable things the tool handled well: the `{{Infobox Australian place}}` parameters translated cleanly into zh, the `{{langx|en|...}}` template was used (not `{{lang-en|...}}`), and the per-section merge plan let the existing zh stub's lead be preserved while the rest of the article was expanded from scratch. The CC BY-SA edit summary + `{{Translated page}}` on the talk page were generated automatically.
 
-## Worked example — 九子奪嫡 (zh → en)
 
-The Chinese Wikipedia article on the Qing dynasty succession dispute is rich; the English coverage is fragmentary. That asymmetry is exactly what this tool exists for.
-
-```bash
-wiki-translate prepare https://zh.wikipedia.org/wiki/九子夺嫡 \
-  --target en --out ./wt-work
-# (agent translates ./wt-work/prompts/*.txt)
-wiki-translate finalize ./wt-work --out ./output
-```
-
-You end up with `output/Nine_Sons/`:
-
-- `Nine_Sons.wikitext` — DRAFT-banner draft with the `{{LLM-assisted translation|reviewed=no}}` template
-- `edit-summary.txt` — `Translated from [[zh:九子夺嫡]] permalink ...` paste-ready for the publishing editor
-- `talk-template.txt` — `{{Translated page|zh|九子夺嫡|...}}` for the en.wiki talk page
-- `review-notes.md` — flagged items the editor must verify (names, dates, citations)
-
-The complete reproducible flow is checked into [`examples/nine-sons-zh-to-en/`](examples/nine-sons-zh-to-en/) and runs offline against a fixture.
-
-Two more end-to-end examples ship in [`examples/`](examples/) — including [`whiteley-aligned-v03`](examples/whiteley-aligned-v03/), which demonstrates the merge plan against an existing zh stub.
 
 ---
 
