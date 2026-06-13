@@ -2,6 +2,8 @@
 
 <h2 align="center">WikiPolyDraft —— AI 輔助維基百科翻譯草稿工具</h2>
 
+![](pic.png)
+
 <p align="center">
   <a href="README.md">English</a> | 中文
 </p>
@@ -154,27 +156,7 @@ URL
 
 工具在這個案例裡幫忙處理掉的事：`{{Infobox Australian place}}` 的所有參數乾淨地翻譯成中文版、用對了 `{{langx|en|...}}` 而不是英文的 `{{lang-en|...}}`、逐章節合併計畫讓既有中文殘篇的 lead 被保留下來，其他章節則從英文版重新展開。CC BY-SA 編輯摘要 + 討論頁的 `{{Translated page}}` 都是自動產出的。
 
-## 實際範例 —— 九子奪嫡（zh → en）
 
-中文版「九子奪嫡」內容豐富；英文版只有零碎片段。這種落差正是這個工具存在的理由。
-
-```bash
-wiki-translate prepare https://zh.wikipedia.org/wiki/九子夺嫡 \
-  --target en --out ./wt-work
-# （agent 翻譯 ./wt-work/prompts/*.txt）
-wiki-translate finalize ./wt-work --out ./output
-```
-
-你會得到 `output/Nine_Sons/`：
-
-- `Nine_Sons.wikitext` —— 帶 DRAFT 橫幅與 `{{LLM-assisted translation|reviewed=no}}` 模板的草稿
-- `edit-summary.txt` —— `Translated from [[zh:九子夺嫡]] permalink ...`，直接給審核編輯複製
-- `talk-template.txt` —— 給 en.wiki 討論頁用的 `{{Translated page|zh|九子夺嫡|...}}`
-- `review-notes.md` —— 編輯必須一一驗證的項目（人名、年份、引用）
-
-完整可重現的流程已經放在 [`examples/nine-sons-zh-to-en/`](examples/nine-sons-zh-to-en/)，使用 fixture 離線執行。
-
-另外兩個端對端範例放在 [`examples/`](examples/)，其中 [`whiteley-aligned-v03`](examples/whiteley-aligned-v03/) 示範了**對既有 zh 殘篇的合併計畫**。
 
 ---
 
